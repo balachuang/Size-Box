@@ -238,7 +238,7 @@ function parsePropertyFile(data)
 function prepareSelector()
 {
     var objSelector = '<div id="obj-selector">';
-    for (var n=0; n<4; ++n) {
+    for (var n=0; n<objectArray.length; ++n) {
         var obj = readObjectInformation(n);
         objSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateObject('+n+')">' + obj.name + '</a></div>';
     }
