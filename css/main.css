@@ -1,0 +1,71 @@
+html {
+	font-size: 62.5%;
+}
+body, nav {
+	font-family: Calibri, Arial, Helvetica, "Microsoft JhengHei", 微軟正黑體, sans-serif;
+    background-image: url("../images/sky.jpg");
+    background-repeat: repeat-x;
+}
+.container {
+	position: absolute;
+	background-color: rgba(255,255,255,0.5);
+}
+#object-container {
+    overflow: hidden;
+}
+#object-progress-bar {
+    overflow-x: scroll;
+    overflow-y: hidden;
+}
+#x-axis {
+    background-image: url("../images/grass.jpg");
+    background-repeat: repeat-x;
+    background-size: 100%;
+}
+.object {
+	position: absolute;
+	border: 1px dashed rgb(200, 200, 200);
+}
+.object:hover {
+	border: 2px solid rgb(200,200,200);
+	border-radius: 15px 15px 0px 0px;
+	box-shadow: 0px 0px 10px 3px rgba(0,0,0,0.15);
+}
+#add-object {
+	width: 100px;
+	height: 100px;
+	text-align: center;
+	line-height: 100px;
+	vertical-align: middle;
+	font-size: 2.5rem;
+	color: rgb(220,220,220);
+}
+.object-name {
+    display: none;
+}
+.object-description {
+    display: none;
+}
+.object-delete, .object-change {
+    position: absolute;
+    width: 22px;
+    height: 22px;
+    border-radius: 11px;
+    background-color: gray;
+    color: white;
+    font-size: 12px;
+    text-align: center;
+    line-height: 22px;
+    vertical-align: middle;
+    display: none;
+}
+#obj-selector {
+    position: absolute;
+    z-index: 10;
+    padding: 10px;
+    background-color: white;
+    border: 1px solid gray;
+    max-height: 300px;
+    overflow-x: hidden;
+    overflow-y: scroll;
+}
