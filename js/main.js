@@ -1,5 +1,5 @@
+var currCategory = null;
 var objectArray = null;
-var selectorHtml = null;
 var targetObj = null;
 
 $(document).ready(initDocument);
@@ -14,6 +14,7 @@ function initDocument()
     $(document).on('mouseleave', '.object', hideObjectInfo);
 
     $('#add-object').click(addObject);
+    $('#change-category').click(changeCategory);
     $(document).on('click', '.object-delete', delObject);
     $(document).on('click', '.object-change', changeObject);
 
@@ -64,6 +65,9 @@ function resizeContainers()
 // recursively call resizeObject to perform animation
 function resizeObjects()
 {
+    $('.object-delete').hide();
+    $('.object-change').hide();
+
     var maxHeight = 0;
     for (var n=0; n<$('.object').length; ++n)
     {
@@ -77,17 +81,18 @@ function resizeObjects()
 
 function resizeObject(idx, curLeft, maxHeight)
 {
-    $('.object-delete').hide();
-    $('.object-change').hide();
+    if (idx >= $('.object').length) return;
 
     var thisObj = $('.object').eq(idx);
     var h = eval(thisObj.attr('obj-height'));
     h = $('#object-container').height() * h / maxHeight;
-    if (idx == $('.object').length - 1) {
+    if (thisObj.hasClass('control')) {
         thisObj.animate({
             'left' : curLeft,
             'top' : $('#object-container').height() - $('#add-object').height()
-        }, 200);
+        }, 200, function(){
+            resizeObject(idx + 1, curLeft + thisObj.width() + 10, maxHeight);
+        });
     }else{
         thisObj.animate({
             left : curLeft,
@@ -105,7 +110,7 @@ function resizeObject(idx, curLeft, maxHeight)
 function addObject()
 {
     // read default object information
-    var obj = readObjectInformation(0);
+    var obj = readObjectInformation(-1);
 
     // visualize object
     var newObj = $('#add-object').before(
@@ -159,8 +164,18 @@ function updateObject(idx)
 // return object information by index
 function readObjectInformation(idx)
 {
-    if (objectArray == null) return null;
-    return objectArray[idx];
+    if (idx >= 0)
+    {
+        if (objectArray == null) return null;
+        return objectArray[idx];
+    }else{
+        // return the cirst object of current category
+    }
+    for (var n=0; n<objectArray.length; ++n)
+    {
+        if (objectArray[n].category == currCategory) return objectArray[n];
+    }
+    return null;
 }
 
 // show object information when mouse over
@@ -181,6 +196,25 @@ function hideObjectInfo()
 {
     $(this).find('.object-delete').hide();
     $(this).find('.object-change').hide();
+    // $('#obj-selector').hide();
+    // $('#cat-selector').hide();
+}
+
+function changeCategory()
+{
+    $('#cat-selector').hide().css({
+        top: $('#change-category').offset().top - $('#cat-selector').height(),
+        left: $('#change-category').offset().left + $('#change-category').width() + 10
+    }).show();
+}
+
+function updateCategory(catName)
+{
+    $('#cat-selector').hide();
+    currCategory = catName;
+    prepareObjSelector();
+    $('.object:not(".control")').remove();
+    resizeObjects();
 }
 
 // read all object information from properties file
@@ -215,6 +249,7 @@ function parsePropertyFile(data)
             {
                 case 'obj_category':
                     obj.category = $.trim(kv[1]);
+                    if (currCategory == null) currCategory = obj.category;
                     break;
                 case 'obj_name':
                     obj.name = $.trim(kv[1]);
@@ -232,17 +267,39 @@ function parsePropertyFile(data)
         }
     }
     if (obj != null) objectArray.push(obj);
-    prepareSelector();
+    prepareObjSelector();
+    prepareCatSelector();
 }
 
-function prepareSelector()
+function prepareObjSelector()
 {
+    $('#obj-selector').remove();
+
     var objSelector = '<div id="obj-selector">';
     for (var n=0; n<objectArray.length; ++n) {
-        var obj = readObjectInformation(n);
+        var obj = objectArray[n];
+        if (obj.category != currCategory) continue;
         objSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateObject('+n+')">' + obj.name + '</a></div>';
     }
     objSelector += '</div>';
     $(objSelector).hide().appendTo('body');
 }
 
+function prepareCatSelector()
+{
+    $('#cat-selector').remove();
+
+    var cats = new Array();
+    for (var n=0; n<objectArray.length; ++n) {
+        var obj = objectArray[n];
+        if (cats.indexOf(obj.category) < 0) cats.push(obj.category);
+    }
+    cats.sort();
+
+    var catSelector = '<div id="cat-selector">';
+    for (var n=0; n<cats.length; ++n) {
+        catSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateCategory(\''+cats[n]+'\')">' + cats[n] + '</a></div>';
+    }
+    catSelector += '</div>';
+    $(catSelector).hide().appendTo('body');
+}

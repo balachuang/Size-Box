@@ -31,13 +31,13 @@ body, nav {
 	border-radius: 15px 15px 0px 0px;
 	box-shadow: 0px 0px 10px 3px rgba(0,0,0,0.15);
 }
-#add-object {
-	width: 100px;
-	height: 100px;
+.control {
+	width: 50px;
+	height: 50px;
 	text-align: center;
-	line-height: 100px;
+	line-height: 50px;
 	vertical-align: middle;
-	font-size: 2.5rem;
+	font-size: 2rem;
 	color: rgb(220,220,220);
 }
 .object-name {
@@ -59,7 +59,7 @@ body, nav {
     vertical-align: middle;
     display: none;
 }
-#obj-selector {
+#obj-selector, #cat-selector {
     position: absolute;
     z-index: 10;
     padding: 10px;
