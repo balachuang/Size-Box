@@ -98,7 +98,8 @@ function resizeObject(idx, curLeft, maxHeight)
             left : curLeft,
             top : $('#object-container').height() - h,
             opacity: 1.0
-        }, 200, function(){
+        }, 100, function(){
+            thisObj.animate({opacity: 1.0}, 200);
             thisObj.find('.object-image').animate({height:h}, 200, function(){
                 resizeObject(idx + 1, curLeft + thisObj.width() + 10, maxHeight);
             });
