@@ -215,6 +215,7 @@ function readObjectInformation(idx)
         return objectArray[idx];
     }else{
         // return the cirst object of current category
+        if (currCategory == '[ALL]') return objectArray[0];
         for (var n=0; n<objectArray.length; ++n)
         {
             if (objectArray[n].category == currCategory) return objectArray[n];
@@ -297,6 +298,7 @@ function updateCategory(catName)
 {
     $('#cat-selector').hide();
     currCategory = catName;
+    console.log(currCategory);
     prepareObjSelector();
     $('.object:not(".control")').remove();
 }
@@ -360,12 +362,23 @@ function prepareObjSelector()
     $('#obj-selector').remove();
 
     var objSelector = '<div id="obj-selector">';
-    for (var n=0; n<objectArray.length; ++n) {
-        var obj = objectArray[n];
-        if (obj.category != currCategory) continue;
-        objSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateObject('+n+')">' + obj.name + '</a></div>';
+    if (currCategory == '[ALL]')
+    {
+        console.log('1');
+        for (var n=0; n<objectArray.length; ++n) {
+            var obj = objectArray[n];
+            objSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateObject('+n+')">' + obj.name + '</a></div>';
+        }
+    }else{
+        console.log('2');
+        for (var n=0; n<objectArray.length; ++n) {
+            var obj = objectArray[n];
+            if (obj.category != currCategory) continue;
+            objSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateObject('+n+')">' + obj.name + '</a></div>';
+        }
     }
     objSelector += '</div>';
+    console.log(objSelector);
     $(objSelector).hide().appendTo('body');
 }
 
@@ -384,6 +397,7 @@ function prepareCatSelector()
     for (var n=0; n<cats.length; ++n) {
         catSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateCategory(\''+cats[n]+'\')">' + cats[n] + '</a></div>';
     }
+    catSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateCategory(\'[ALL]\')">不分類</a></div>';
     catSelector += '</div>';
     $(catSelector).hide().appendTo('body');
 }
