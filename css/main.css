@@ -24,6 +24,7 @@ body, nav {
 }
 .object {
 	position: absolute;
+	border-radius: 15px 15px 0px 0px;
 	border: 1px dashed rgb(200, 200, 200);
 }
 .object:hover {
@@ -73,6 +74,11 @@ body, nav {
     line-height: 22px;
     vertical-align: middle;
     cursor: pointer;
+    display: none;
+}
+.object-mark {
+    position: absolute;
+    width: 17px;
     display: none;
 }
 #obj-selector, #cat-selector {

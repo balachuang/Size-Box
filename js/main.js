@@ -1,5 +1,5 @@
 var currCategory = null;
-var objectArray = null;
+var objectDB = null;
 var targetObj = null;
 var idleTimer = null;
 var idleTime = 0;
@@ -16,6 +16,8 @@ function initDocument()
     $(document).on('mouseenter', '.object', displayObjectInfo);
     $(document).on('mouseleave', '.object', hideObjectInfo);
     $(document).on('mousemove', '.object:not(".control")', resetTimer);
+    $(document).on('mouseleave', '#obj-selector', function(){ $('#obj-selector').hide(); });
+    $(document).on('mouseleave', '#cat-selector', function(){ $('#cat-selector').hide(); });
 
     $('#add-object').click(addObject);
     $('#change-category').click(changeCategory);
@@ -79,7 +81,7 @@ function resizeObjects()
         if (maxHeight < h) maxHeight = h;
     }
 
-    resizeObject(0, 10, maxHeight);
+    resizeObject(0, 20, maxHeight);
 }
 
 function resizeObject(idx, curLeft, maxHeight)
@@ -108,25 +110,37 @@ function resizeObject(idx, curLeft, maxHeight)
         if (thisObj.hasClass('control')) {
             thisObj.animate({ 'left' : tarL, 'top' : tarT}, 200);
         }else{
-            thisObj.animate({left:tarL, top:tarT, opacity:1.0}, 200);
-            thisObj.find('.object-image.active').animate({height:tarH}, 200, function(){
+            thisObj.animate({left:tarL, top:tarT}, 200);
+            var thisImg = thisObj.find('.object-image.active');
+            thisImg.animate({height:tarH}, 200, function(){
+                if (thisImg.height() < 0.1 * $('#main-container').height())
+                {
+                    // this object is too small, show mark
+                    thisObj.find('.object-mark').css({
+                        top: thisImg.position().top - 30,
+                        left: thisImg.position().left + (thisImg.width() - thisObj.find('.object-mark').width()) / 2
+                    }).show();
+                }else{
+                    thisObj.find('.object-mark').hide();
+                }
                 if (thisObj.find('div.object-delete:visible').length > 0) thisObj.mouseenter();
             });
         }
     }
 
     // recursive go...
-    resizeObject(idx + 1, curLeft + curW + 10, maxHeight);
+    resizeObject(idx + 1, curLeft + curW + 20, maxHeight);
 }
 
 // add a new object
 function addObject()
 {
     // read default object information
-    var obj = readObjectInformation(-1);
+    var obj = readObjectInformation(0);
     var l = $('#add-object').position().left;
 
-    var imgs = obj.image.split(',');
+    // var imgs = obj.image.split(',');
+    var imgs = obj.images.split(';');
     var imghtml = '<img class="object-image active" src="' + $.trim(imgs[0]) + '">';
     for (var n=1; n<imgs.length; ++n) {
         imghtml += '<img class="object-image disable" src="' + $.trim(imgs[n]) + '">';
@@ -134,14 +148,15 @@ function addObject()
 
     // visualize object
     $('#add-object').before(
-        '<div class="object" name="' + obj.name + '" obj-height="' + obj.height + '" style="opacity:0; top:0px; left:' + l + '">' + 
+        '<div class="object" name="' + obj.name + '" obj-height="' + obj.height + '" style="top:0px; left:' + l + '">' + 
         '   <a href="https://www.google.com.tw/?gws_rd=ssl#safe=off&q=' + obj.name + '" target="_new">' + imghtml + '</a>' +
         '   <div class="object-name">' + obj.name + '</div>' +
-        '   <div class="object-description">' + obj.description + '</div>' +
+        // '   <div class="object-description">' + obj.description + '</div>' +
         '   <div class="object-delete"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></div>' +
         '   <div class="object-change"><span class="glyphicon glyphicon-th-large" aria-hidden="true"></span></div>' +
         '   <div class="object-left"><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span></div>' +
         '   <div class="object-right"><span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span></div>' +
+        '   <div class="object-mark"><img src="images/mark.png" style="width:100%;"></div>' +
         '</div>'
     );
 }
@@ -156,11 +171,22 @@ function delObject()
 // call updateObject to re-render object
 function changeObject()
 {
+    // set targetObj for call back function
     targetObj = $(this).closest('div.object');
-    $('#obj-selector').hide().css({
-        top: $(this).offset().top,
-        left: $(this).offset().left + 30
-    }).show();
+
+    // display selector
+    if ($(this).offset().top + $('#obj-selector').height() >= $('#main-container').height() - 30)
+    {
+        $('#obj-selector').hide().css({
+            top: $(this).offset().top - $('#obj-selector').height(),
+            left: $(this).offset().left + 30
+        }).show();
+    }else{
+        $('#obj-selector').hide().css({
+            top: $(this).offset().top,
+            left: $(this).offset().left + 30
+        }).show();
+    }
 }
 
 function updateObject(idx)
@@ -174,11 +200,11 @@ function updateObject(idx)
     targetObj.attr('obj-height', obj.height);
     targetObj.find('a').attr('href', 'https://www.google.com.tw/?gws_rd=ssl#safe=off&q=' + obj.name);
     targetObj.find('div.object-name').text(obj.name);
-    targetObj.find('div.object-description').text(obj.description);
+    // targetObj.find('div.object-description').text(obj.description);
     targetObj.find('img.object-image-active').remove();
     targetObj.find('img.object-image').remove();
 
-    var imgs = obj.image.split(',');
+    var imgs = obj.images.split(';');
     targetObj.find('a').append('<img class="object-image active" src="' + $.trim(imgs[0]) + '">')
     for (var n=1; n<imgs.length; ++n) {
         targetObj.find('a').append('<img class="object-image disable" src="' + $.trim(imgs[n]) + '">')
@@ -209,44 +235,53 @@ function changeImage(thisObj, cv)
 // return object information by index
 function readObjectInformation(idx)
 {
-    if (idx >= 0)
-    {
-        if (objectArray == null) return null;
-        return objectArray[idx];
-    }else{
-        // return the cirst object of current category
-        if (currCategory == '[ALL]') return objectArray[0];
-        for (var n=0; n<objectArray.length; ++n)
-        {
-            if (objectArray[n].category == currCategory) return objectArray[n];
-        }
-    }
+    if (idx < 0) return null;
+
+    if (currCategory == '[ALL]')
+        return objectDB().get()[idx];
+    else
+        return objectDB({category:currCategory}).get()[idx];
+
     return null;
 }
 
 // show object information when mouse over
 function displayObjectInfo()
 {
-    $(this).find('div.object-delete').css({
-        top: 10,
-        left: $(this).width() - 30
-    }).fadeIn(100);
-    $(this).find('div.object-change').css({
-        top: 10,
-        left: 10
-    }).fadeIn(100);
-
-    if ($(this).find('.object-image').length > 1)
+    var thisMark = $(this).find('.object-mark:visible');
+    if (thisMark.length > 0)
     {
-        var h = ($(this).find('.object-image.active').height() - $(this).find('div.object-left').height()) / 2;
-        $(this).find('div.object-left').css({
-            top: h,
+        // if the object is too small, there is no need to enable the image change icons
+        $(this).find('div.object-delete').css({
+            top: thisMark.position().top - 25,
+            left: thisMark.position().left - 2
+        }).fadeIn(100);
+        $(this).find('div.object-change').css({
+            top: thisMark.position().top - 50,
+            left: thisMark.position().left - 2
+        }).fadeIn(100);
+    }else{
+        $(this).find('div.object-delete').css({
+            top: 10,
+            left: $(this).width() - 30
+        }).fadeIn(100);
+        $(this).find('div.object-change').css({
+            top: 10,
             left: 10
-        }).fadeIn(200);
-        $(this).find('div.object-right').css({
-            top: h,
-            left: $(this).width() - $(this).find('div.object-right').width() - 10
-        }).fadeIn(200);
+        }).fadeIn(100);
+
+        if ($(this).find('.object-image').length > 1)
+        {
+            var h = ($(this).find('.object-image.active').height() - $(this).find('div.object-left').height()) / 2;
+            $(this).find('div.object-left').css({
+                top: h,
+                left: 10
+            }).fadeIn(200);
+            $(this).find('div.object-right').css({
+                top: h,
+                left: $(this).width() - $(this).find('div.object-right').width() - 10
+            }).fadeIn(200);
+        }
     }
 
     $('#object-name-lable').text($(this).find('div.object-name').text());
@@ -258,12 +293,22 @@ function displayObjectInfo()
 // show object information when mouse out
 function hideObjectInfo()
 {
-    $(this).find('div.object-delete').hide();
-    $(this).find('div.object-change').hide();
-    $(this).find('div.object-name').hide();
-    $(this).find('div.object-left').hide();
-    $(this).find('div.object-right').hide();
-    $('#object-name-lable').hide();
+    if ($(this).find('.object-mark:visible').length > 0)
+    {
+        var o1 = $(this).find('div.object-delete');
+        var o2 = $(this).find('div.object-change');
+        setTimeout(function(){
+            o1.hide();
+            o2.hide();
+        }, 3000);
+    }else{
+        $(this).find('div.object-delete').hide();
+        $(this).find('div.object-change').hide();
+        $(this).find('div.object-name').hide();
+        $(this).find('div.object-left').hide();
+        $(this).find('div.object-right').hide();
+        $('#object-name-lable').hide();
+    }
 
     clearInterval(idleTimer);
     idleTimer = null;
@@ -290,7 +335,7 @@ function changeCategory()
 {
     $('#cat-selector').hide().css({
         top: $('#change-category').offset().top - $('#cat-selector').height(),
-        left: $('#change-category').offset().left + $('#change-category').width() + 10
+        left: $('#change-category').offset().left - $('#change-category').width() - 10
     }).show();
 }
 
@@ -298,7 +343,6 @@ function updateCategory(catName)
 {
     $('#cat-selector').hide();
     currCategory = catName;
-    console.log(currCategory);
     prepareObjSelector();
     $('.object:not(".control")').remove();
 }
@@ -307,52 +351,40 @@ function updateCategory(catName)
 // call prepareSelector to prepare selector for changeObject
 function prepareObjectsAndSelector()
 {
-    var userLang = navigator.language || navigator.userLanguage;
-
-    // read by current browser language, then read default if fail
-    $.get('objects_' + userLang + '.properties', parsePropertyFile).fail(function(){
-        $.get( "objects.properties", parsePropertyFile);
-    });
+    // var userLang = navigator.language || navigator.userLanguage;
+    $.get( "objects.csv", parsePropertyFile);
 }
 
 function parsePropertyFile(data)
 {
     var lines = data.split('\n');
+    var colNum = $.trim(lines[0]).split(',').length;
 
+    objectDB = TAFFY();
     var obj = null;
-    objectArray = new Array();
-    for (var n=0; n<lines.length; ++n)
+
+    // line 1 is only for human read
+    for (var n=1; n<lines.length; ++n)
     {
-        var thisLine = $.trim(lines[n]);
-        if (thisLine == '## object start') {
-            if (obj != null) objectArray.push(obj);
-            obj = {'category': '', 'name': '', 'description': '', 'height': 0, 'image': ''};
-        }else if (thisLine != '') {
-            if (thisLine.startsWith('#')) continue;
-            var kv = thisLine.split('=');
-            if (kv.length != 2) continue;
-            switch($.trim(kv[0]))
-            {
-                case 'obj_category':
-                    obj.category = $.trim(kv[1]);
-                    if (currCategory == null) currCategory = obj.category;
-                    break;
-                case 'obj_name':
-                    obj.name = $.trim(kv[1]);
-                    break;
-                case 'obj_description':
-                    obj.description = $.trim(kv[1]);
-                    break;
-                case 'obj_height':
-                    obj.height = eval($.trim(kv[1]));
-                    break;
-                case 'obj_image':
-                    obj.image = $.trim(kv[1]);
-                    break;
-            }
+        if ($.trim(lines[n]) == '') continue;
+
+        var thisVals = $.trim(lines[n]).split(',');
+        if (thisVals.length < colNum) {
+            console.error('Wrong column number of this line: ' + lines[n]);
+            continue;
         }
+
+        // skip Descipriton, currently useless
+        objectDB.insert({
+            category: $.trim(thisVals[0]),
+            name: $.trim(thisVals[1]),
+            height: eval($.trim(thisVals[3])),
+            images: $.trim(thisVals[4])
+        });
+
+        if (currCategory == null) currCategory = $.trim(thisVals[0]);
     }
-    if (obj != null) objectArray.push(obj);
+
     prepareObjSelector();
     prepareCatSelector();
 }
@@ -364,21 +396,15 @@ function prepareObjSelector()
     var objSelector = '<div id="obj-selector">';
     if (currCategory == '[ALL]')
     {
-        console.log('1');
-        for (var n=0; n<objectArray.length; ++n) {
-            var obj = objectArray[n];
-            objSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateObject('+n+')">' + obj.name + '</a></div>';
-        }
+        objectDB().each(function(r, rn){
+            objSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateObject('+rn+')">' + r.name + '</a></div>';
+        });
     }else{
-        console.log('2');
-        for (var n=0; n<objectArray.length; ++n) {
-            var obj = objectArray[n];
-            if (obj.category != currCategory) continue;
-            objSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateObject('+n+')">' + obj.name + '</a></div>';
-        }
+        objectDB({category:currCategory}).each(function(r, rn){
+            objSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateObject('+rn+')">' + r.name + '</a></div>';
+        });
     }
     objSelector += '</div>';
-    console.log(objSelector);
     $(objSelector).hide().appendTo('body');
 }
 
@@ -386,21 +412,11 @@ function prepareCatSelector()
 {
     $('#cat-selector').remove();
 
-    var cats = new Array();
-    for (var n=0; n<objectArray.length; ++n) {
-        var obj = objectArray[n];
-        if (cats.indexOf(obj.category) < 0) cats.push(obj.category);
-    }
-    cats.sort();
-
     var catSelector = '<div id="cat-selector">';
-    for (var n=0; n<cats.length; ++n) {
-        catSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateCategory(\''+cats[n]+'\')">' + cats[n] + '</a></div>';
-    }
+    $.each(objectDB().distinct('category'), function(k,v){
+        catSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateCategory(\'' + v + '\')">' + v + '</a></div>';
+    }); 
     catSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateCategory(\'[ALL]\')">不分類</a></div>';
     catSelector += '</div>';
     $(catSelector).hide().appendTo('body');
 }
-
-// sodadb: https://sodadb.com/WE3JM43yGOHscOMT5VvZ
-// sodadb: https://sodadb.com/api.php?i=WE3JM43yGOHscOMT5VvZ
