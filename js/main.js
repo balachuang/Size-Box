@@ -1,4 +1,3 @@
-var currCategory = null;
 var objectDB = null;
 var targetObj = null;
 var idleTimer = null;
@@ -13,18 +12,21 @@ function initDocument()
     resizeContainers();
 
     $(window).resize(resizeContainers);
-    $(document).on('mouseenter', '.object', displayObjectInfo);
+    $(document).on('mouseenter', '.object', showObjectInfo);
     $(document).on('mouseleave', '.object', hideObjectInfo);
     $(document).on('mousemove', '.object:not(".control")', resetTimer);
     $(document).on('mouseleave', '#obj-selector', function(){ $('#obj-selector').hide(); });
-    $(document).on('mouseleave', '#cat-selector', function(){ $('#cat-selector').hide(); });
+    $(document).on('mouseleave', '#cat-selector', hideCategorySelector);
 
     $('#add-object').click(addObject);
-    $('#change-category').click(changeCategory);
+    $('#change-category').click(showCategorSelectory);
+    $(document).on('click', 'span.cat-option', checkCategory);
+    $(document).on('click', 'span.obj-option', updateObject);
     $(document).on('click', '.object-delete', delObject);
-    $(document).on('click', '.object-change', changeObject);
+    $(document).on('click', '.object-change', showObjectSelector);
     $(document).on('click', '.object-left', prevImage);
     $(document).on('click', '.object-right', nextImage);
+    // $(document).on('change', '.cat-check', prepareObjSelector);
 
     $('#object-progress-bar').mousewheel(function(event, delta) {
         this.scrollLeft -= (delta * 30);
@@ -136,7 +138,7 @@ function resizeObject(idx, curLeft, maxHeight)
 function addObject()
 {
     // read default object information
-    var obj = readObjectInformation(0);
+    var obj = readObjectInformation();
     var l = $('#add-object').position().left;
 
     // var imgs = obj.image.split(',');
@@ -169,7 +171,7 @@ function delObject()
 
 // change the object contain
 // call updateObject to re-render object
-function changeObject()
+function showObjectSelector()
 {
     // set targetObj for call back function
     targetObj = $(this).closest('div.object');
@@ -189,12 +191,13 @@ function changeObject()
     }
 }
 
-function updateObject(idx)
+function updateObject()
 {
     $('#obj-selector').hide();
 
     // read default object information
-    var obj = readObjectInformation(idx);
+    var objid = $(this).attr('objid');
+    var obj = readObjectInformation(objid);
 
     // visualize object
     targetObj.attr('obj-height', obj.height);
@@ -233,20 +236,18 @@ function changeImage(thisObj, cv)
 }
 
 // return object information by index
-function readObjectInformation(idx)
+function readObjectInformation(objid)
 {
-    if (idx < 0) return null;
-
-    if (currCategory == '[ALL]')
-        return objectDB().get()[idx];
-    else
-        return objectDB({category:currCategory}).get()[idx];
-
-    return null;
+    var targetObjID = objid;
+    if (targetObjID == null) {
+        if ($('span.obj-option').length <= 0) return objectDB().first().get()[0];
+        targetObjID = $('span.obj-option:eq(0)').attr('objid');
+    }
+    return objectDB(targetObjID).get()[0];
 }
 
 // show object information when mouse over
-function displayObjectInfo()
+function showObjectInfo()
 {
     var thisMark = $(this).find('.object-mark:visible');
     if (thisMark.length > 0)
@@ -331,7 +332,7 @@ function resetTimer(evn)
     $('#object-name-lable').hide();
 }
 
-function changeCategory()
+function showCategorSelectory()
 {
     $('#cat-selector').hide().css({
         top: $('#change-category').offset().top - $('#cat-selector').height(),
@@ -339,12 +340,20 @@ function changeCategory()
     }).show();
 }
 
-function updateCategory(catName)
+function checkCategory()
 {
+    if ($(this).text().indexOf('全選') >= 0) return $('input.cat-check').prop('checked', true);
+    if ($(this).text().indexOf('全不選') >= 0) return $('input.cat-check').prop('checked', false);
+
+    var c = $(this).prev('input').prop('checked');
+    $(this).prev('input').prop('checked', !c);
+}
+
+function hideCategorySelector()
+{
+    if ($('input.cat-check:checked').length <= 0) $('input.cat-check:eq(0)').prop('checked', true);
     $('#cat-selector').hide();
-    currCategory = catName;
     prepareObjSelector();
-    $('.object:not(".control")').remove();
 }
 
 // read all object information from properties file
@@ -381,31 +390,10 @@ function parsePropertyFile(data)
             height: eval($.trim(thisVals[3])),
             images: $.trim(thisVals[4])
         });
-
-        if (currCategory == null) currCategory = $.trim(thisVals[0]);
     }
 
-    prepareObjSelector();
     prepareCatSelector();
-}
-
-function prepareObjSelector()
-{
-    $('#obj-selector').remove();
-
-    var objSelector = '<div id="obj-selector">';
-    if (currCategory == '[ALL]')
-    {
-        objectDB().each(function(r, rn){
-            objSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateObject('+rn+')">' + r.name + '</a></div>';
-        });
-    }else{
-        objectDB({category:currCategory}).each(function(r, rn){
-            objSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateObject('+rn+')">' + r.name + '</a></div>';
-        });
-    }
-    objSelector += '</div>';
-    $(objSelector).hide().appendTo('body');
+    prepareObjSelector();
 }
 
 function prepareCatSelector()
@@ -413,10 +401,29 @@ function prepareCatSelector()
     $('#cat-selector').remove();
 
     var catSelector = '<div id="cat-selector">';
+    catSelector += '<div><span class="cat-option">[全選]</a></div>';
+    catSelector += '<div><span class="cat-option">[全不選]</a></div>';
     $.each(objectDB().distinct('category'), function(k,v){
-        catSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateCategory(\'' + v + '\')">' + v + '</a></div>';
-    }); 
-    catSelector += '<div><a role="menuitem" tabindex="-1" href="javascript:updateCategory(\'[ALL]\')">不分類</a></div>';
+        catSelector += '<div><input type="checkbox" class="cat-check" value="' + v + '"> <span class="cat-option">' + v + '</span></div>';
+    });
     catSelector += '</div>';
-    $(catSelector).hide().appendTo('body');
+    $(catSelector).hide().appendTo('body').find('.cat-check:eq(0)').prop('checked', true);
 }
+
+function prepareObjSelector()
+{
+    // remove current objects
+    $('.object:not(".control")').remove();
+    $('#obj-selector').remove();
+
+    var catFilterArray = new Array();
+    $('input.cat-check:checked').each(function(){ catFilterArray.push($(this).val()); });
+
+    var objSelector = '<div id="obj-selector">';
+    objectDB({category:catFilterArray}).order('height').each(function(r, rn){
+        objSelector += '<div><span class="obj-option" objid="' + r.___id + '">[' + r.height + 'm] ' + r.name + '</span></div>';
+    });
+    objSelector += '</div>';
+    $(objSelector).hide().appendTo('body');
+}
+

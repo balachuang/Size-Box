@@ -91,3 +91,6 @@ body, nav {
     overflow-x: hidden;
     overflow-y: scroll;
 }
+span.cat-option, span.obj-option {
+    cursor: pointer;
+}
