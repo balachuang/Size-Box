@@ -8,6 +8,7 @@ body, nav {
 }
 .container {
 	position: absolute;
+	padding: 0px;
 	background-color: rgba(255,255,255,0.5);
 }
 #object-container {
@@ -21,6 +22,15 @@ body, nav {
     background-image: url("../images/grass.jpg");
     background-repeat: repeat-x;
     background-size: 100%;
+}
+#object-name-label {
+    position: absolute;
+    color: white;
+    font-size: 2.5rem;
+    font-weight: bolder;
+    text-shadow: 0px 0px 5px black;
+    text-align: center;
+    overflow: visible;
 }
 .object {
 	position: absolute;
@@ -41,14 +51,6 @@ body, nav {
 	font-size: 2rem;
 	background-color: rgb(220,220,220);
 	color: gray;
-}
-#object-name-lable {
-    position: absolute;
-    color: white;
-    font-size: 2.5rem;
-    font-weight: bolder;
-    text-shadow: 0px 0px 5px black;
-    display: none;
 }
 .object-name {
     display: none;
@@ -93,4 +95,20 @@ body, nav {
 }
 span.cat-option, span.obj-option {
     cursor: pointer;
+}
+.object-name-x {
+    position: absolute;
+    color: white;
+    font-size: 2.5rem;
+    font-weight: bolder;
+    text-shadow: 0px 0px 5px black;
+    text-align: center;
+    /*display: none;*/
+}
+.object-name-y {
+    position: absolute;
+    width: 100%;
+    height: 0px;
+    border: 1px solid black;
+    /*display: none;*/
 }

@@ -1,7 +1,8 @@
+var catChanged = false;
 var objectDB = null;
 var targetObj = null;
-var idleTimer = null;
-var idleTime = 0;
+// var idleTimer = null;
+// var idleTime = 0;
 var mouseEvent = null;
 
 $(document).ready(initDocument);
@@ -14,7 +15,6 @@ function initDocument()
     $(window).resize(resizeContainers);
     $(document).on('mouseenter', '.object', showObjectInfo);
     $(document).on('mouseleave', '.object', hideObjectInfo);
-    $(document).on('mousemove', '.object:not(".control")', resetTimer);
     $(document).on('mouseleave', '#obj-selector', function(){ $('#obj-selector').hide(); });
     $(document).on('mouseleave', '#cat-selector', hideCategorySelector);
 
@@ -26,7 +26,8 @@ function initDocument()
     $(document).on('click', '.object-change', showObjectSelector);
     $(document).on('click', '.object-left', prevImage);
     $(document).on('click', '.object-right', nextImage);
-    // $(document).on('change', '.cat-check', prepareObjSelector);
+
+    $(document).on('change', '.cat-check', function(){ catChanged = true; });
 
     $('#object-progress-bar').mousewheel(function(event, delta) {
         this.scrollLeft -= (delta * 30);
@@ -55,6 +56,11 @@ function resizeContainers()
         'height' : 50
     });
     $('#x-axis').width($('#main-container').width());
+    $('#object-name-label').css({
+        'left' : 0,
+        'top' : 5,
+        'height' : 45
+    });
     $('#object-container').css({
         'left' : 50,
         'top' : 0,
@@ -110,8 +116,10 @@ function resizeObject(idx, curLeft, maxHeight)
     if ((curT != tarT) || (curL != tarL) || (curH != tarH))
     {
         if (thisObj.hasClass('control')) {
+            // move control box
             thisObj.animate({ 'left' : tarL, 'top' : tarT}, 200);
         }else{
+            // move objects
             thisObj.animate({left:tarL, top:tarT}, 200);
             var thisImg = thisObj.find('.object-image.active');
             thisImg.animate({height:tarH}, 200, function(){
@@ -119,8 +127,9 @@ function resizeObject(idx, curLeft, maxHeight)
                 {
                     // this object is too small, show mark
                     thisObj.find('.object-mark').css({
-                        top: thisImg.position().top - 30,
-                        left: thisImg.position().left + (thisImg.width() - thisObj.find('.object-mark').width()) / 2
+                        top: thisImg.position().top - 80,
+                        left: thisImg.position().left + (thisImg.width() - thisObj.find('.object-mark').width()) / 2,
+                        paddingTop: 50
                     }).show();
                 }else{
                     thisObj.find('.object-mark').hide();
@@ -137,36 +146,60 @@ function resizeObject(idx, curLeft, maxHeight)
 // add a new object
 function addObject()
 {
-    // read default object information
-    var obj = readObjectInformation();
+    // always add default object
     var l = $('#add-object').position().left;
 
-    // var imgs = obj.image.split(',');
-    var imgs = obj.images.split(';');
-    var imghtml = '<img class="object-image active" src="' + $.trim(imgs[0]) + '">';
-    for (var n=1; n<imgs.length; ++n) {
-        imghtml += '<img class="object-image disable" src="' + $.trim(imgs[n]) + '">';
-    }
-
-    // visualize object
     $('#add-object').before(
-        '<div class="object" name="' + obj.name + '" obj-height="' + obj.height + '" style="top:0px; left:' + l + '">' + 
-        '   <a href="https://www.google.com.tw/?gws_rd=ssl#safe=off&q=' + obj.name + '" target="_new">' + imghtml + '</a>' +
-        '   <div class="object-name">' + obj.name + '</div>' +
+        '<div class="object" name="中年帥氣男" obj-height="1.785" style="top:0px; left:' + l + '">' + 
+        '   <div class="object-mark"><img src="images/mark.png" style="width:100%;"></div>' +
+        '   <a href="javascript:void(0)" target="_new">' +
+        '       <img class="object-image active" src="images/me1.png">' +
+        '       <img class="object-image disable" src="images/me2.png">' +
+        '   </a>' +
+        '   <div class="object-name">中年帥氣男</div>' +
         // '   <div class="object-description">' + obj.description + '</div>' +
         '   <div class="object-delete"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></div>' +
         '   <div class="object-change"><span class="glyphicon glyphicon-th-large" aria-hidden="true"></span></div>' +
         '   <div class="object-left"><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span></div>' +
         '   <div class="object-right"><span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span></div>' +
-        '   <div class="object-mark"><img src="images/mark.png" style="width:100%;"></div>' +
         '</div>'
     );
+}
+
+function addAllObjects()
+{
+    var allObjs = $('span.obj-option');
+    $.each(allObjs, function(){
+        var l = $('#add-object').position().left;
+        var objid = $(this).attr('objid');
+        var obj = readObjectInformation(objid);
+    
+        var imgs = obj.images.split(';');
+        var imgHtml = '<img class="object-image active" src="' + $.trim(imgs[0]) + '">';
+        for (var n=1; n<imgs.length; ++n) {
+            imgHtml += '<img class="object-image disable" src="' + $.trim(imgs[n]) + '">';
+        }
+
+        $('#add-object').before(
+            '<div class="object" name="'+obj.name+'" obj-height="'+obj.height+'" style="top:0px; left:' + l + '">' + 
+            '   <div class="object-mark"><img src="images/mark.png" style="width:100%;"></div>' +
+            '   <a href="javascript:void(0)" target="_new">' + imgHtml + '</a>' +
+            '   <div class="object-name">'+obj.name+'</div>' +
+            // '   <div class="object-description">' + obj.description + '</div>' +
+            '   <div class="object-delete"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></div>' +
+            '   <div class="object-change"><span class="glyphicon glyphicon-th-large" aria-hidden="true"></span></div>' +
+            '   <div class="object-left"><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span></div>' +
+            '   <div class="object-right"><span class="glyphicon glyphicon-chevron-right" aria-hidden="true"></span></div>' +
+            '</div>'
+        );
+    });
 }
 
 // delete an object
 function delObject()
 {
     $(this).closest('div.object').remove();
+    $('#object-name-label').text('');
 }
 
 // change the object contain
@@ -249,19 +282,21 @@ function readObjectInformation(objid)
 // show object information when mouse over
 function showObjectInfo()
 {
+    // show object control icons
     var thisMark = $(this).find('.object-mark:visible');
     if (thisMark.length > 0)
     {
-        // if the object is too small, there is no need to enable the image change icons
+        // the object is too small, there is no need to enable the image change icons
         $(this).find('div.object-delete').css({
-            top: thisMark.position().top - 25,
+            top: thisMark.position().top + 25,
             left: thisMark.position().left - 2
         }).fadeIn(100);
         $(this).find('div.object-change').css({
-            top: thisMark.position().top - 50,
+            top: thisMark.position().top,
             left: thisMark.position().left - 2
         }).fadeIn(100);
     }else{
+        // the object size is normal
         $(this).find('div.object-delete').css({
             top: 10,
             left: $(this).width() - 30
@@ -285,51 +320,23 @@ function showObjectInfo()
         }
     }
 
-    $('#object-name-lable').text($(this).find('div.object-name').text());
-
-    if (idleTimer != null) clearInterval(idleTimer);
-    idleTimer = setInterval(checkIdle, 1000);
+    // show object name
+    $('#object-name-label').text($(this).find('div.object-name').text());
+    $('#object-name-label').css({
+        left: Math.max(0, $('#y-axis').width() + $(this).position().left + ( $(this).width() - $('#object-name-label').width()) / 2)
+    });
 }
 
 // show object information when mouse out
 function hideObjectInfo()
 {
-    if ($(this).find('.object-mark:visible').length > 0)
-    {
-        var o1 = $(this).find('div.object-delete');
-        var o2 = $(this).find('div.object-change');
-        setTimeout(function(){
-            o1.hide();
-            o2.hide();
-        }, 3000);
-    }else{
-        $(this).find('div.object-delete').hide();
-        $(this).find('div.object-change').hide();
-        $(this).find('div.object-name').hide();
-        $(this).find('div.object-left').hide();
-        $(this).find('div.object-right').hide();
-        $('#object-name-lable').hide();
-    }
+    $(this).find('div.object-delete').hide();
+    $(this).find('div.object-change').hide();
+    $(this).find('div.object-name').hide();
+    $(this).find('div.object-left').hide();
+    $(this).find('div.object-right').hide();
 
-    clearInterval(idleTimer);
-    idleTimer = null;
-}
-
-function checkIdle()
-{
-    if (++idleTime > 1) {
-        $('#object-name-lable').css({
-            top: mouseEvent.pageY - $('#object-name-lable').height() - 20,
-            left: mouseEvent.pageX - $('#object-name-lable').width() - 20
-        }).fadeIn(200);
-    }
-}
-
-function resetTimer(evn)
-{
-    mouseEvent = evn;
-    idleTime = 0;
-    $('#object-name-lable').hide();
+    $('#object-name-label').text('');
 }
 
 function showCategorSelectory()
@@ -342,6 +349,8 @@ function showCategorSelectory()
 
 function checkCategory()
 {
+    catChanged = true;
+
     if ($(this).text().indexOf('全選') >= 0) return $('input.cat-check').prop('checked', true);
     if ($(this).text().indexOf('全不選') >= 0) return $('input.cat-check').prop('checked', false);
 
@@ -351,9 +360,14 @@ function checkCategory()
 
 function hideCategorySelector()
 {
-    if ($('input.cat-check:checked').length <= 0) $('input.cat-check:eq(0)').prop('checked', true);
+    // if ($('input.cat-check:checked').length <= 0) $('input.cat-check:eq(0)').prop('checked', true);
     $('#cat-selector').hide();
-    prepareObjSelector();
+
+    if (catChanged)
+    {
+        catChanged = false;
+        prepareObjSelector();
+    }
 }
 
 // read all object information from properties file
@@ -376,6 +390,7 @@ function parsePropertyFile(data)
     for (var n=1; n<lines.length; ++n)
     {
         if ($.trim(lines[n]) == '') continue;
+        if ($.trim(lines[n]).startsWith('#')) continue;
 
         var thisVals = $.trim(lines[n]).split(',');
         if (thisVals.length < colNum) {
@@ -420,6 +435,7 @@ function prepareObjSelector()
     $('input.cat-check:checked').each(function(){ catFilterArray.push($(this).val()); });
 
     var objSelector = '<div id="obj-selector">';
+    objSelector += '<div><span onclick="javascript:addAllObjects();" style="cursor:pointer;">[加入全部]</span></div>';
     objectDB({category:catFilterArray}).order('height').each(function(r, rn){
         objSelector += '<div><span class="obj-option" objid="' + r.___id + '">[' + r.height + 'm] ' + r.name + '</span></div>';
     });
