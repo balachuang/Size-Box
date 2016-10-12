@@ -112,3 +112,8 @@ span.cat-option, span.obj-option {
     border: 1px solid black;
     /*display: none;*/
 }
+#network-tester {
+    position: absolute;
+    top: —100px;
+    left: -100px;
+}

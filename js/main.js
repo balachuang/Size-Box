@@ -1,16 +1,14 @@
+var isGoogleDriveAvailable = undefined;
 var catChanged = false;
 var objectDB = null;
 var targetObj = null;
-// var idleTimer = null;
-// var idleTime = 0;
-var mouseEvent = null;
+// var mouseEvent = null;
 
 $(document).ready(initDocument);
 
 function initDocument()
 {
-    prepareObjectsAndSelector();
-    resizeContainers();
+    checkGoogle();
 
     $(window).resize(resizeContainers);
     $(document).on('mouseenter', '.object', showObjectInfo);
@@ -33,6 +31,18 @@ function initDocument()
         this.scrollLeft -= (delta * 30);
         event.preventDefault();
     });
+}
+
+function checkGoogle()
+{
+    var img = $('#network-tester').get()[0];
+    if (!img.complete) return setTimeout(checkGoogle, 1000);
+
+    if (img.naturalWidth === 0) isGoogleDriveAvailable = false;
+    else                        isGoogleDriveAvailable = true;
+
+    prepareObjectsAndSelector();
+    resizeContainers();
 }
 
 // resize all contains and objects
@@ -157,7 +167,7 @@ function addObject()
         '       <img class="object-image disable" src="images/me2.png">' +
         '   </a>' +
         '   <div class="object-name">中年帥氣男</div>' +
-        // '   <div class="object-description">' + obj.description + '</div>' +
+        // '   <div class="object-image-name">me1.png;me2.png</div>' +
         '   <div class="object-delete"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></div>' +
         '   <div class="object-change"><span class="glyphicon glyphicon-th-large" aria-hidden="true"></span></div>' +
         '   <div class="object-left"><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span></div>' +
@@ -168,16 +178,29 @@ function addObject()
 
 function addAllObjects()
 {
+    // remove myself
+    $('div.object[name="中年帥氣男"]').remove();
+
     var allObjs = $('span.obj-option');
     $.each(allObjs, function(){
         var l = $('#add-object').position().left;
         var objid = $(this).attr('objid');
         var obj = readObjectInformation(objid);
     
-        var imgs = obj.images.split(';');
-        var imgHtml = '<img class="object-image active" src="' + $.trim(imgs[0]) + '">';
-        for (var n=1; n<imgs.length; ++n) {
-            imgHtml += '<img class="object-image disable" src="' + $.trim(imgs[n]) + '">';
+        var imgs = null;
+        if (isGoogleDriveAvailable)
+        {
+            imgs = obj.images.split(';');
+            var imgHtml = '<img class="object-image active" src="' + $.trim(imgs[0]) + '">';
+            for (var n=1; n<imgs.length; ++n) {
+                imgHtml += '<img class="object-image disable" src="' + $.trim(imgs[n]) + '">';
+            }
+        }else{
+            imgs = obj.imageNames.split(';');
+            var imgHtml = '<img class="object-image active" src="objImages/' + $.trim(imgs[0]) + '">';
+            for (var n=1; n<imgs.length; ++n) {
+                imgHtml += '<img class="object-image disable" src="objImages/' + $.trim(imgs[n]) + '">';
+            }
         }
 
         $('#add-object').before(
@@ -185,7 +208,7 @@ function addAllObjects()
             '   <div class="object-mark"><img src="images/mark.png" style="width:100%;"></div>' +
             '   <a href="javascript:void(0)" target="_new">' + imgHtml + '</a>' +
             '   <div class="object-name">'+obj.name+'</div>' +
-            // '   <div class="object-description">' + obj.description + '</div>' +
+            // '   <div class="object-image-name">'+obj.imageNames+'</div>' +
             '   <div class="object-delete"><span class="glyphicon glyphicon-remove" aria-hidden="true"></span></div>' +
             '   <div class="object-change"><span class="glyphicon glyphicon-th-large" aria-hidden="true"></span></div>' +
             '   <div class="object-left"><span class="glyphicon glyphicon-chevron-left" aria-hidden="true"></span></div>' +
@@ -236,14 +259,24 @@ function updateObject()
     targetObj.attr('obj-height', obj.height);
     targetObj.find('a').attr('href', 'https://www.google.com.tw/?gws_rd=ssl#safe=off&q=' + obj.name);
     targetObj.find('div.object-name').text(obj.name);
-    // targetObj.find('div.object-description').text(obj.description);
-    targetObj.find('img.object-image-active').remove();
     targetObj.find('img.object-image').remove();
 
-    var imgs = obj.images.split(';');
-    targetObj.find('a').append('<img class="object-image active" src="' + $.trim(imgs[0]) + '">')
-    for (var n=1; n<imgs.length; ++n) {
-        targetObj.find('a').append('<img class="object-image disable" src="' + $.trim(imgs[n]) + '">')
+    var imgs = null;
+    if (isGoogleDriveAvailable)
+    {
+        // Google drive is available, get images from google drive
+        imgs = obj.images.split(';');
+        targetObj.find('a').append('<img class="object-image active" src="' + $.trim(imgs[0]) + '">')
+        for (var n=1; n<imgs.length; ++n) {
+            targetObj.find('a').append('<img class="object-image disable" src="' + $.trim(imgs[n]) + '">')
+        }
+    }else{
+        // Google drive is unavailable, using default images
+        imgs = obj.imageNames.split(';');
+        targetObj.find('a').append('<img class="object-image active" src="objImages/' + $.trim(imgs[0]) + '">')
+        for (var n=1; n<imgs.length; ++n) {
+            targetObj.find('a').append('<img class="object-image disable" src="objImages/' + $.trim(imgs[n]) + '">')
+        }
     }
 
     targetObj = null;
@@ -403,7 +436,8 @@ function parsePropertyFile(data)
             category: $.trim(thisVals[0]),
             name: $.trim(thisVals[1]),
             height: eval($.trim(thisVals[3])),
-            images: $.trim(thisVals[4])
+            images: $.trim(thisVals[4]),
+            imageNames: $.trim(thisVals[5])
         });
     }
 
@@ -436,7 +470,7 @@ function prepareObjSelector()
 
     var objSelector = '<div id="obj-selector">';
     objSelector += '<div><span onclick="javascript:addAllObjects();" style="cursor:pointer;">[加入全部]</span></div>';
-    objectDB({category:catFilterArray}).order('height').each(function(r, rn){
+    objectDB({category:catFilterArray}).order('height desc').each(function(r, rn){
         objSelector += '<div><span class="obj-option" objid="' + r.___id + '">[' + r.height + 'm] ' + r.name + '</span></div>';
     });
     objSelector += '</div>';
