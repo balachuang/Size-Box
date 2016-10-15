@@ -54,12 +54,12 @@ function resizeContainers()
         'width' : $(document).width() - 20,
         'height' : $(document).height() - 20
     });
-    $('#y-axis').css({
-        'left' : 0,
-        'top' : 0,
-        'width' : 50,
-        'height' : $('#main-container').height() - 50
-    });
+    // $('#y-axis').css({
+    //     'left' : 0,
+    //     'top' : 0,
+    //     'width' : 50,
+    //     'height' : $('#main-container').height() - 50
+    // });
     $('#x-axis').css({
         'left' : 0,
         'top' : $('#main-container').height() - 50,
@@ -72,7 +72,7 @@ function resizeContainers()
         'height' : 45
     });
     $('#object-container').css({
-        'left' : 50,
+        'left' : 0,
         'top' : 0,
         'height' : $('#main-container').height() - 50
     });
@@ -81,7 +81,7 @@ function resizeContainers()
         'top' : 0,
         'height' : $('#main-container').height()
     });
-    $('#object-container').width($('#main-container').width() - 50);
+    $('#object-container').width($('#main-container').width());
     $('#object-progress-bar').width($('#object-container').width());
 
     resizeObjects();
@@ -188,19 +188,18 @@ function addAllObjects()
         var obj = readObjectInformation(objid);
     
         var imgs = null;
+        var pref = null;
         if (isGoogleDriveAvailable)
         {
             imgs = obj.images.split(';');
-            var imgHtml = '<img class="object-image active" src="' + $.trim(imgs[0]) + '">';
-            for (var n=1; n<imgs.length; ++n) {
-                imgHtml += '<img class="object-image disable" src="' + $.trim(imgs[n]) + '">';
-            }
+            pref = 'https://docs.google.com/uc?id=';
         }else{
             imgs = obj.imageNames.split(';');
-            var imgHtml = '<img class="object-image active" src="objImages/' + $.trim(imgs[0]) + '">';
-            for (var n=1; n<imgs.length; ++n) {
-                imgHtml += '<img class="object-image disable" src="objImages/' + $.trim(imgs[n]) + '">';
-            }
+            pref = 'objImages/';
+        }
+        var imgHtml = '<img class="object-image active" src="' + pref + $.trim(imgs[0]) + '">';
+        for (var n=1; n<imgs.length; ++n) {
+            imgHtml += '<img class="object-image disable" src="' + pref + $.trim(imgs[n]) + '">';
         }
 
         $('#add-object').before(
@@ -262,21 +261,18 @@ function updateObject()
     targetObj.find('img.object-image').remove();
 
     var imgs = null;
+    var pref = null;
     if (isGoogleDriveAvailable)
     {
-        // Google drive is available, get images from google drive
         imgs = obj.images.split(';');
-        targetObj.find('a').append('<img class="object-image active" src="' + $.trim(imgs[0]) + '">')
-        for (var n=1; n<imgs.length; ++n) {
-            targetObj.find('a').append('<img class="object-image disable" src="' + $.trim(imgs[n]) + '">')
-        }
+        pref = 'https://docs.google.com/uc?id=';
     }else{
-        // Google drive is unavailable, using default images
         imgs = obj.imageNames.split(';');
-        targetObj.find('a').append('<img class="object-image active" src="objImages/' + $.trim(imgs[0]) + '">')
-        for (var n=1; n<imgs.length; ++n) {
-            targetObj.find('a').append('<img class="object-image disable" src="objImages/' + $.trim(imgs[n]) + '">')
-        }
+        pref = 'objImages/';
+    }
+    targetObj.find('a').append('<img class="object-image active" src="' + pref + $.trim(imgs[0]) + '">')
+    for (var n=1; n<imgs.length; ++n) {
+        targetObj.find('a').append('<img class="object-image disable" src="' + pref + $.trim(imgs[n]) + '">')
     }
 
     targetObj = null;
@@ -356,7 +352,7 @@ function showObjectInfo()
     // show object name
     $('#object-name-label').text($(this).find('div.object-name').text());
     $('#object-name-label').css({
-        left: Math.max(0, $('#y-axis').width() + $(this).position().left + ( $(this).width() - $('#object-name-label').width()) / 2)
+        left: Math.max(0, /*$('#y-axis').width() +*/ $(this).position().left + ( $(this).width() - $('#object-name-label').width()) / 2)
     });
 }
 
@@ -477,3 +473,4 @@ function prepareObjSelector()
     $(objSelector).hide().appendTo('body');
 }
 
+// 'https://docs.google.com/uc?id='
